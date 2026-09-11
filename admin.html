@@ -9,54 +9,85 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
+<style>
+  .admin-tabs{ display:flex; gap:8px; margin-bottom:22px; }
+  .admin-tab{ background:none; border:1px solid #2A4A40; border-radius:8px; color:#9FC4B8; padding:9px 16px; font-size:13px; cursor:pointer; font-family:"Work Sans",sans-serif; }
+  .admin-tab.active{ background:var(--teal); border-color:var(--teal); color:var(--white); font-weight:600; }
+</style>
 </head>
 <body class="admin-body">
 <div class="admin-shell">
   <div class="admin-top">
     <div>
-      <div class="admin-title">Barphil — Demandes reçues</div>
-      <div class="admin-sub">Tableau de bord admin</div>
+      <div class="admin-title">Barphil — Tableau de bord</div>
+      <div class="admin-sub">Demandes clients &amp; candidatures partenaires</div>
     </div>
     <button class="logout" id="logoutBtn" style="display:none;" onclick="logout()">Déconnexion</button>
   </div>
 
   <div class="key-box" id="keyBox">
     <input id="keyInput" type="password" placeholder="Clé admin (X-Admin-Key)">
-    <button onclick="loadLeads()">Voir les demandes</button>
+    <button onclick="loadAll()">Voir les données</button>
+  </div>
+
+  <div class="admin-tabs" id="tabs" style="display:none;">
+    <button class="admin-tab active" id="tabLeads" onclick="switchTab('leads')">Demandes clients</button>
+    <button class="admin-tab" id="tabPartners" onclick="switchTab('partners')">Candidatures partenaires</button>
   </div>
 
   <div id="content"></div>
 </div>
 
 <script>
+let activeTab = 'leads';
+let cache = { leads: [], partners: [] };
+
 function getKey() { return sessionStorage.getItem('barphil_admin_key') || ''; }
 function setKey(k) { sessionStorage.setItem('barphil_admin_key', k); }
 function logout() {
   sessionStorage.removeItem('barphil_admin_key');
   document.getElementById('keyBox').style.display = 'flex';
   document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('tabs').style.display = 'none';
   document.getElementById('content').innerHTML = '';
 }
 
-async function loadLeads() {
+async function loadAll() {
   const key = document.getElementById('keyInput').value || getKey();
   if (!key) return;
   const content = document.getElementById('content');
   content.innerHTML = '<div class="empty-msg">Chargement…</div>';
   try {
-    const res = await fetch('/api/leads', { headers: { 'X-Admin-Key': key } });
-    if (res.status === 401) {
+    const [leadsRes, partnersRes] = await Promise.all([
+      fetch('/api/leads', { headers: { 'X-Admin-Key': key } }),
+      fetch('/api/partners', { headers: { 'X-Admin-Key': key } }),
+    ]);
+    if (leadsRes.status === 401 || partnersRes.status === 401) {
       content.innerHTML = '<div class="err-msg">⚠ Clé admin incorrecte.</div>';
       return;
     }
-    const data = await res.json();
+    cache.leads = (await leadsRes.json()).leads;
+    cache.partners = (await partnersRes.json()).partners;
     setKey(key);
     document.getElementById('keyBox').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'inline-block';
-    renderLeads(data.leads);
+    document.getElementById('tabs').style.display = 'flex';
+    renderActiveTab();
   } catch (e) {
     content.innerHTML = '<div class="err-msg">⚠ Erreur de connexion au serveur.</div>';
   }
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabLeads').classList.toggle('active', tab === 'leads');
+  document.getElementById('tabPartners').classList.toggle('active', tab === 'partners');
+  renderActiveTab();
+}
+
+function renderActiveTab() {
+  if (activeTab === 'leads') renderLeads(cache.leads);
+  else renderPartners(cache.partners);
 }
 
 function renderLeads(leads) {
@@ -72,6 +103,7 @@ function renderLeads(leads) {
       <td>${escapeHtml(l.nom)}</td>
       <td>${escapeHtml(l.email)}</td>
       <td>${escapeHtml(l.telephone || '—')}</td>
+      <td>${escapeHtml(l.region || '—')}</td>
       <td>${escapeHtml(l.profil)}</td>
       <td>${escapeHtml(l.travaux)}</td>
       <td>${l.surface} m²</td>
@@ -83,8 +115,41 @@ function renderLeads(leads) {
     <div class="admin-table-wrap">
       <table>
         <thead><tr>
-          <th>ID</th><th>Date</th><th>Nom</th><th>Email</th><th>Tél.</th>
+          <th>ID</th><th>Date</th><th>Nom</th><th>Email</th><th>Tél.</th><th>Région</th>
           <th>Profil</th><th>Travaux</th><th>Surface</th><th>Estimation</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderPartners(partners) {
+  const content = document.getElementById('content');
+  if (!partners.length) {
+    content.innerHTML = '<div class="empty-msg">Aucune candidature reçue pour le moment.</div>';
+    return;
+  }
+  const rows = partners.map((p) => `
+    <tr>
+      <td>#${p.id}</td>
+      <td>${new Date(p.created_at).toLocaleString('fr-FR')}</td>
+      <td>${escapeHtml(p.entreprise)}</td>
+      <td>${escapeHtml(p.siret || '—')}</td>
+      <td>${escapeHtml(p.region)}</td>
+      <td>${escapeHtml(p.nom)}</td>
+      <td>${escapeHtml(p.email)}</td>
+      <td>${escapeHtml(p.telephone || '—')}</td>
+      <td>${escapeHtml(p.message || '—')}</td>
+    </tr>
+  `).join('');
+  content.innerHTML = `
+    <div class="count-badge">${partners.length} candidature(s)</div>
+    <div class="admin-table-wrap">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Date</th><th>Entreprise</th><th>SIRET</th><th>Zone</th>
+          <th>Contact</th><th>Email</th><th>Tél.</th><th>Message</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -100,7 +165,7 @@ function escapeHtml(s) {
 
 if (getKey()) {
   document.getElementById('keyInput').value = getKey();
-  loadLeads();
+  loadAll();
 }
 </script>
 </body>

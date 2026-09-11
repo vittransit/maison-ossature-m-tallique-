@@ -1,4 +1,4 @@
-const STEPS = ["landing","profil","details","travaux","plans","analyzing","metre","devis","contact","confirm"];
+const STEPS = ["landing","profil","details","travaux","plans","analyzing","metre","devis","contact","confirm","partenaire","partenaire-confirm"];
 const WIZARD = ["profil","details","travaux","plans","metre","devis","contact"];
 
 let state = {
@@ -12,7 +12,8 @@ let state = {
   metreRows: [],
   devis: null,
   superviseur: false,
-  contactNom: "", contactEmail: "", contactTel: "",
+  contactNom: "", contactEmail: "", contactTel: "", contactRegion: "",
+  partnerEntreprise: "", partnerSiret: "", partnerRegion: "", partnerNom: "", partnerEmail: "", partnerTel: "", partnerMessage: "",
   error: null,
 };
 
@@ -37,14 +38,14 @@ const PROFILES = {
   },
   artisan: {
     title: "Artisan / Constructeur",
-    desc: "Je suis un professionnel du bâtiment",
-    infoTitle: "Comment ça fonctionne",
+    desc: "Je veux devenir partenaire régional Barphil",
+    infoTitle: "Devenir partenaire régional",
     image: "/images/chantier-2.jpg",
     imageCaption: "Montage de l'ossature sur un chantier partenaire",
     info: [
       ["Formation", "Formation à notre système constructif et aux techniques de montage"],
       ["Convention partenaire", "Signature des accords nécessaires avec votre entreprise"],
-      ["Chantiers clients", "Montage et installation réalisés pour vos clients, via le réseau d'entreprises partenaires de votre secteur"],
+      ["Clients de votre région", "Nous vous mettons en relation avec les clients qui nous contactent dans votre zone d'intervention"],
     ],
   },
   client: {
@@ -89,6 +90,7 @@ function scrollToSection(id) {
 }
 function back() {
   const s = STEPS[state.step];
+  if (s === "partenaire") { goTo("details"); return; }
   const idx = WIZARD.indexOf(s);
   if (idx > 0) goTo(WIZARD[idx - 1]);
   else if (s === "profil") goTo("landing");
@@ -97,7 +99,7 @@ function back() {
 function renderRail() {
   const s = STEPS[state.step];
   const rail = document.getElementById("rail");
-  if (s === "landing" || s === "confirm") { rail.classList.add("hidden"); return; }
+  if (s === "landing" || s === "confirm" || s === "partenaire" || s === "partenaire-confirm") { rail.classList.add("hidden"); return; }
   rail.classList.remove("hidden");
   const total = WIZARD.length;
   let cur = WIZARD.indexOf(s);
@@ -204,6 +206,7 @@ async function submitForm(e) {
   state.contactNom = document.getElementById("f-nom").value;
   state.contactEmail = document.getElementById("f-email").value;
   state.contactTel = document.getElementById("f-tel").value;
+  state.contactRegion = document.getElementById("f-region").value;
   const website = document.getElementById("f-website")?.value || "";
 
   let data;
@@ -212,7 +215,7 @@ async function submitForm(e) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        nom: state.contactNom, email: state.contactEmail, telephone: state.contactTel,
+        nom: state.contactNom, email: state.contactEmail, telephone: state.contactTel, region: state.contactRegion,
         profil: state.profil, travaux: state.travaux, surface: state.surface,
         superviseur: state.superviseur,
         fichiers: state.filesInfo.map((f) => f.filename),
@@ -229,6 +232,46 @@ async function submitForm(e) {
   }
   state.leadId = data.id;
   goTo("confirm");
+}
+
+let partnerSubmitting = false;
+async function submitPartnerForm(e) {
+  e.preventDefault();
+  if (partnerSubmitting) return;
+  partnerSubmitting = true;
+  const btn = document.getElementById("partnerSubmitBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Envoi en cours…"; }
+
+  state.partnerEntreprise = document.getElementById("p-entreprise").value;
+  state.partnerSiret = document.getElementById("p-siret").value;
+  state.partnerRegion = document.getElementById("p-region").value;
+  state.partnerNom = document.getElementById("p-nom").value;
+  state.partnerEmail = document.getElementById("p-email").value;
+  state.partnerTel = document.getElementById("p-tel").value;
+  state.partnerMessage = document.getElementById("p-message").value;
+  const website = document.getElementById("p-website")?.value || "";
+
+  let data;
+  try {
+    const res = await fetch("/api/partners", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        entreprise: state.partnerEntreprise, siret: state.partnerSiret, region: state.partnerRegion,
+        nom: state.partnerNom, email: state.partnerEmail, telephone: state.partnerTel,
+        message: state.partnerMessage, website,
+      }),
+    });
+    data = await res.json();
+  } catch (err) {
+    partnerSubmitting = false;
+    if (btn) { btn.disabled = false; btn.textContent = "Envoyer ma candidature"; }
+    state.error = "Erreur de connexion, merci de reessayer.";
+    render();
+    return;
+  }
+  state.partnerId = data.id;
+  goTo("partenaire-confirm");
 }
 
 const WALL_DIAGRAM_SVG = `
@@ -428,7 +471,7 @@ function render() {
       <div>${p.info.map(([t, d]) => `<div class="info-card"><div class="opt-title">${t}</div><div class="opt-desc">${d}</div></div>`).join("")}</div>`;
     footer.innerHTML = `<div class="actions-row">
       <button class="btn-back" onclick="back()">← Retour</button>
-      <button class="btn-primary" onclick="goTo('travaux')">Continuer</button>
+      <button class="btn-primary" onclick="goTo('${state.profil === "artisan" ? "partenaire" : "travaux"}')">Continuer</button>
     </div>`;
   }
 
@@ -520,7 +563,7 @@ function render() {
       <div class="price-block">
         <div class="price-label">${d.priceTag.toUpperCase()} · ${TRAVAUX[state.travaux].title.toUpperCase()} · ${state.surface} M²</div>
         <div class="price-value">${d.total.toLocaleString("fr-FR")} €</div>
-        <div class="price-sub">${d.rate} €/m² · hors fondations et options non cochées</div>
+        <div class="price-sub">${state.profil === "artisan" ? `${Math.round(d.total / state.surface)} €/m² · matériaux seuls, hors pose et fondations` : `${d.rate} €/m² · hors fondations et options non cochées`}</div>
       </div>
       ${d.breakdown.map((b) => `<div class="breakdown-row ${b.addon ? "addon" : ""}"><span>${b.label}</span><span>${b.addon ? "+" : ""}${b.amount.toLocaleString("fr-FR")} €</span></div>`).join("")}
       <div class="breakdown-row total"><span>Total estimé</span><span>${d.total.toLocaleString("fr-FR")} €</span></div>
@@ -551,6 +594,7 @@ function render() {
         <div class="field"><label>Nom</label><input id="f-nom" required></div>
         <div class="field"><label>Email</label><input id="f-email" type="email" required></div>
         <div class="field"><label>Téléphone</label><input id="f-tel" type="tel"></div>
+        <div class="field"><label>Ville ou code postal du projet</label><input id="f-region" required><div class="field-hint">Pour vous orienter vers l'artisan partenaire de votre secteur</div></div>
         <label class="consent-row">
           <input type="checkbox" id="f-consent" required>
           <span>J'accepte que Barphil Concept utilise ces informations pour me recontacter au sujet de mon projet. Voir notre politique de confidentialité.</span>
@@ -582,6 +626,55 @@ function render() {
           <li>Un conseiller vérifie votre métré sous 48h</li>
           <li>Étude technique et devis détaillé</li>
           <li>Signature et lancement du chantier</li>
+        </ul>
+      </div>`;
+    footer.innerHTML = ``;
+  }
+
+  else if (s === "partenaire") {
+    app.innerHTML = `
+      <div class="eyebrow">DEVENIR PARTENAIRE</div>
+      <h1>Rejoindre le réseau régional</h1>
+      <p class="lede">Renseignez votre entreprise et votre zone d'intervention — nous vous recontactons pour la formation et la convention partenaire, et vous mettons en relation avec les clients de votre secteur.</p>
+      <form class="contact-form" onsubmit="submitPartnerForm(event)" id="partnerForm">
+        <div class="field"><label>Entreprise</label><input id="p-entreprise" required></div>
+        <div class="field"><label>SIRET</label><input id="p-siret"></div>
+        <div class="field"><label>Zone d'intervention (départements / région)</label><input id="p-region" required><div class="field-hint">Ex. Bouches-du-Rhône, Var, Vaucluse…</div></div>
+        <div class="field"><label>Nom du contact</label><input id="p-nom" required></div>
+        <div class="field"><label>Email</label><input id="p-email" type="email" required></div>
+        <div class="field"><label>Téléphone</label><input id="p-tel" type="tel"></div>
+        <div class="field"><label>Message (optionnel)</label><textarea id="p-message" rows="3"></textarea></div>
+        <label class="consent-row">
+          <input type="checkbox" id="p-consent" required>
+          <span>J'accepte que Barphil Concept utilise ces informations pour étudier ma candidature de partenaire. Voir notre politique de confidentialité.</span>
+        </label>
+        <div style="position:absolute; left:-9999px; opacity:0;" aria-hidden="true">
+          <label>Site web</label><input id="p-website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+      </form>
+      ${state.error ? `<div class="note-box error">⚠ ${escapeHtml(state.error)}</div>` : ""}
+    `;
+    footer.innerHTML = `<div class="actions-row">
+      <button class="btn-back" onclick="back()">← Retour</button>
+      <button class="btn-primary" id="partnerSubmitBtn" onclick="document.getElementById('partnerForm').requestSubmit()">Envoyer ma candidature</button>
+    </div>`;
+  }
+
+  else if (s === "partenaire-confirm") {
+    app.innerHTML = `
+      <div class="confirm-wrap">
+        <div class="confirm-mark">✓</div>
+        <h1>Candidature envoyée</h1>
+        <p class="lede">Un conseiller Barphil recontacte ${escapeHtml(state.partnerNom) || "vous"} sous 48h à l'adresse ${escapeHtml(state.partnerEmail)}.</p>
+        <div class="recap">
+          <div class="recap-line"><span>Référence</span><b>#${state.partnerId}</b></div>
+          <div class="recap-line"><span>Entreprise</span><b>${escapeHtml(state.partnerEntreprise)}</b></div>
+          <div class="recap-line"><span>Zone</span><b>${escapeHtml(state.partnerRegion)}</b></div>
+        </div>
+        <ul class="next-steps">
+          <li>Un conseiller étudie votre candidature sous 48h</li>
+          <li>Formation à notre système constructif et signature de la convention</li>
+          <li>Mise en relation avec les clients de votre zone</li>
         </ul>
       </div>`;
     footer.innerHTML = ``;
