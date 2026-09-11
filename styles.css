@@ -197,7 +197,7 @@ p.lede{ color:var(--ink-soft); font-size:15px; margin:0 0 26px; max-width:40ch; 
 
 .spec-table{ width:100%; border-collapse:collapse; margin-bottom:8px; }
 .spec-table tr{ border-bottom:1px solid var(--line); }
-.spec-table td{ padding:13px 4px; font-size:14.5px; }
+.spec-table td{ padding:13px 4px; font-size:14.5px; color:var(--ink); }
 .spec-table td:last-child{ text-align:right; font-family:"IBM Plex Mono",monospace; font-weight:600; color:var(--brand); }
 
 .toggle-row{ display:flex; align-items:flex-start; gap:14px; border:1.5px solid var(--line); border-radius:12px; padding:16px 18px; margin:4px 0 20px; cursor:pointer; transition:border-color .15s ease, background .15s ease; }
