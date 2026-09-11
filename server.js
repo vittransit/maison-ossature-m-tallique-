@@ -282,7 +282,7 @@ const server = http.createServer(async (req, res) => {
 
     // ---- Real photos served from disk (./images/) ----
     if (pathname.startsWith('/images/') && req.method === 'GET') {
-      const IMAGES_DIR = path.join(__dirname, 'images');
+      const IMAGES_DIR = __dirname;
       const requested = path.normalize(pathname.replace('/images/', ''));
       if (requested.startsWith('..')) return send(res, 403, 'Forbidden');
       const filePath = path.join(IMAGES_DIR, requested);
