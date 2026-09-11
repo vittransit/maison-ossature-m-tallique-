@@ -216,6 +216,8 @@ p.lede{ color:var(--ink-soft); font-size:15px; margin:0 0 26px; max-width:40ch; 
 .breakdown-row.total{ border-bottom:none; border-top:2px solid var(--ink); margin-top:4px; padding-top:14px; font-weight:700; font-size:15px; }
 
 form.contact-form{ display:flex; flex-direction:column; gap:16px; }
+.consent-row{ display:flex; gap:10px; align-items:flex-start; font-size:12px; color:var(--ink-soft); line-height:1.5; cursor:pointer; }
+.consent-row input{ margin-top:2px; flex-shrink:0; width:16px; height:16px; accent-color:var(--brand); }
 .recap{ background:var(--bg); border-radius:10px; padding:14px 16px; font-size:13px; color:var(--ink); margin-bottom:20px; }
 .recap b{ color:var(--brand); }
 .recap-line{ display:flex; justify-content:space-between; padding:4px 0; }

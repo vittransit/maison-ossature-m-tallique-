@@ -7,6 +7,7 @@ let state = {
   travaux: null,
   fileObjs: [],
   filesInfo: [],
+  noPlansYet: false,
   surface: null,
   metreRows: [],
   devis: null,
@@ -119,6 +120,21 @@ function handleFiles(input) {
   render();
 }
 
+function toggleNoPlans(checked) {
+  state.noPlansYet = checked;
+  if (checked) {
+    state.fileObjs = [];
+    if (!state.surface) state.surface = 120;
+  }
+  render();
+}
+
+async function continueWithoutPlans() {
+  state.filesInfo = [];
+  await refreshMetre();
+  goTo("metre");
+}
+
 async function analyser() {
   goTo("analyzing");
   const form = new FormData();
@@ -177,25 +193,40 @@ async function goToDevis() {
   goTo("devis");
 }
 
+let submitting = false;
 async function submitForm(e) {
   e.preventDefault();
+  if (submitting) return;
+  submitting = true;
+  const btn = document.getElementById("submitBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Envoi en cours…"; }
+
   state.contactNom = document.getElementById("f-nom").value;
   state.contactEmail = document.getElementById("f-email").value;
   state.contactTel = document.getElementById("f-tel").value;
   const website = document.getElementById("f-website")?.value || "";
 
-  const res = await fetch("/api/leads", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      nom: state.contactNom, email: state.contactEmail, telephone: state.contactTel,
-      profil: state.profil, travaux: state.travaux, surface: state.surface,
-      superviseur: state.superviseur,
-      fichiers: state.filesInfo.map((f) => f.filename),
-      website,
-    }),
-  });
-  const data = await res.json();
+  let data;
+  try {
+    const res = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nom: state.contactNom, email: state.contactEmail, telephone: state.contactTel,
+        profil: state.profil, travaux: state.travaux, surface: state.surface,
+        superviseur: state.superviseur,
+        fichiers: state.filesInfo.map((f) => f.filename),
+        website,
+      }),
+    });
+    data = await res.json();
+  } catch (err) {
+    submitting = false;
+    if (btn) { btn.disabled = false; btn.textContent = "Envoyer ma demande"; }
+    state.error = "Erreur de connexion, merci de reessayer.";
+    render();
+    return;
+  }
   state.leadId = data.id;
   goTo("confirm");
 }
@@ -421,22 +452,34 @@ function render() {
   }
 
   else if (s === "plans") {
+    const canContinue = state.fileObjs.length > 0 || state.noPlansYet;
     app.innerHTML = `
       <div class="eyebrow">ÉTAPE 04</div>
       <h1>Vos plans</h1>
       <p class="lede">Déposez le plan de chaque niveau, au format PDF.</p>
-      <div class="dropzone">
+      <div class="dropzone" style="${state.noPlansYet ? "opacity:0.45; pointer-events:none;" : ""}">
         <div style="font-size:13.5px;color:var(--ink-soft);">Plans de niveau — PDF</div>
         <label class="file-btn">Choisir un fichier
-          <input type="file" accept="application/pdf" multiple style="display:none" onchange="handleFiles(this)">
+          <input type="file" accept="application/pdf" multiple style="display:none" onchange="handleFiles(this)" ${state.noPlansYet ? "disabled" : ""}>
         </label>
         ${state.fileObjs.length ? `<div class="file-list">${state.fileObjs.map((f) => `<div class="file-row"><span>${escapeHtml(f.name)}</span><span>${(f.size / 1024).toFixed(0)} Ko</span></div>`).join("")}</div>` : ""}
       </div>
-      ${state.error ? `<div class="note-box error">⚠ ${escapeHtml(state.error)}</div>` : `<div class="note-box info">ℹ Le serveur lit réellement vos PDF (nombre de pages, format) pour proposer une surface de départ.</div>`}
+      <label class="consent-row" style="margin-top:14px;">
+        <input type="checkbox" id="f-noplans" ${state.noPlansYet ? "checked" : ""} onchange="toggleNoPlans(this.checked)">
+        <span>Je n'ai pas encore mes plans — je donne une surface estimée et je les enverrai plus tard</span>
+      </label>
+      ${state.noPlansYet ? `
+        <div class="field" style="margin-top:16px;">
+          <label>Surface habitable estimée (m²)</label>
+          <input type="number" value="${state.surface || 120}" min="20" max="500" onchange="updateSurface(this.value)">
+        </div>` : ""}
+      ${state.error ? `<div class="note-box error">⚠ ${escapeHtml(state.error)}</div>` : state.noPlansYet
+        ? `<div class="note-box info">ℹ Un conseiller Barphil vous recontactera pour récupérer vos plans dès qu'ils seront prêts. Votre estimation reste basée sur la surface indiquée ci-dessus.</div>`
+        : `<div class="note-box info">ℹ Vos plans sont transmis à notre bureau d'études et nous aident à affiner l'estimation (nombre de niveaux, format). La surface reste modifiable à l'étape suivante.</div>`}
     `;
     footer.innerHTML = `<div class="actions-row">
       <button class="btn-back" onclick="back()">← Retour</button>
-      <button class="btn-primary" ${!state.fileObjs.length ? "disabled" : ""} onclick="analyser()">Analyser les plans</button>
+      <button class="btn-primary" ${!canContinue ? "disabled" : ""} onclick="${state.noPlansYet ? "continueWithoutPlans()" : "analyser()"}">${state.noPlansYet ? "Continuer" : "Analyser les plans"}</button>
     </div>`;
   }
 
@@ -455,11 +498,11 @@ function render() {
     app.innerHTML = `
       <div class="eyebrow">ÉTAPE 05 — MÉTRÉ</div>
       <h1>Métré estimatif</h1>
-      <p class="lede">Surface de départ suggérée à partir de vos plans (${state.filesInfo.map((f) => `${escapeHtml(f.filename)}: ${f.pageCount}p · ${f.format}`).join(", ")}). Ajustez si besoin.</p>
+      <p class="lede">${state.filesInfo.length ? `Surface de départ suggérée à partir de vos plans (${state.filesInfo.map((f) => `${escapeHtml(f.filename)}: ${f.pageCount}p · ${f.format}`).join(", ")}).` : "Indiquez la surface habitable de votre projet."} Ajustez si besoin.</p>
       <div class="field">
         <label>Surface habitable (m²)</label>
         <input type="number" value="${state.surface}" min="20" max="500" onchange="updateSurface(this.value)">
-        <div class="field-hint">Suggestion basée sur le nombre de pages et le format des plans — à corriger manuellement</div>
+        <div class="field-hint">${state.filesInfo.length ? "Suggestion basée sur le nombre de pages et le format des plans — à corriger manuellement" : "Renseignez votre meilleure estimation — elle sera confirmée lors de l'étude technique"}</div>
       </div>
       <table class="spec-table">${state.metreRows.map((r) => `<tr><td>${r.label}</td><td>${r.value}</td></tr>`).join("")}</table>
       <div class="note-box">⚠ Métré indicatif — à confirmer lors de l'étude technique.</div>`;
@@ -508,6 +551,10 @@ function render() {
         <div class="field"><label>Nom</label><input id="f-nom" required></div>
         <div class="field"><label>Email</label><input id="f-email" type="email" required></div>
         <div class="field"><label>Téléphone</label><input id="f-tel" type="tel"></div>
+        <label class="consent-row">
+          <input type="checkbox" id="f-consent" required>
+          <span>J'accepte que Barphil Concept utilise ces informations pour me recontacter au sujet de mon projet. Voir notre politique de confidentialité.</span>
+        </label>
         <div style="position:absolute; left:-9999px; opacity:0;" aria-hidden="true">
           <label>Site web</label><input id="f-website" name="website" tabindex="-1" autocomplete="off">
         </div>
@@ -515,7 +562,7 @@ function render() {
       <div class="note-box info">ℹ Vous préférez appeler ? <a href="tel:0622034232" style="color:var(--brand);font-weight:700;">06 22 03 42 32</a> · <a href="mailto:contact@barphil.fr" style="color:var(--brand);font-weight:700;">contact@barphil.fr</a></div>`;
     footer.innerHTML = `<div class="actions-row">
       <button class="btn-back" onclick="back()">← Retour</button>
-      <button class="btn-primary" onclick="document.getElementById('contactForm').requestSubmit()">Envoyer ma demande</button>
+      <button class="btn-primary" id="submitBtn" onclick="document.getElementById('contactForm').requestSubmit()">Envoyer ma demande</button>
     </div>`;
   }
 
