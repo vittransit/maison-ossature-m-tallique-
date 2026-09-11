@@ -96,7 +96,7 @@ p.lede{ color:var(--ink-soft); font-size:15px; margin:0 0 26px; max-width:40ch; 
 }
 .trust-bar span{ color:var(--brand); font-weight:600; }
 
-.nav-chips{ display:flex; gap:8px; overflow-x:auto; margin:0 0 30px; -webkit-overflow-scrolling:touch; }
+.nav-chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:14px; -webkit-overflow-scrolling:touch; }
 .nav-chips::-webkit-scrollbar{ display:none; }
 .nav-chip{
   flex-shrink:0; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--brand);

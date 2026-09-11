@@ -303,11 +303,26 @@ const WALL_DIAGRAM_SVG = `
   </g>
 </svg>`;
 
+function renderHeaderExtra(s) {
+  const el = document.getElementById("headerExtra");
+  if (s !== "landing") { el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <nav class="nav-chips">
+      <button class="nav-chip" onclick="scrollToSection('about')">Qui sommes-nous</button>
+      <button class="nav-chip" onclick="scrollToSection('method')">Notre méthode</button>
+      <button class="nav-chip" onclick="scrollToSection('quality')">Qualité</button>
+      <button class="nav-chip" onclick="scrollToSection('org')">Organisation</button>
+      <button class="nav-chip" onclick="scrollToSection('gallery')">Réalisations</button>
+      <button class="nav-chip" onclick="scrollToSection('faq')">FAQ</button>
+    </nav>`;
+}
+
 function render() {
   renderRail();
   const app = document.getElementById("app");
   const footer = document.getElementById("footer");
   const s = STEPS[state.step];
+  renderHeaderExtra(s);
 
   if (s === "landing") {
     app.innerHTML = `
@@ -331,14 +346,6 @@ function render() {
         <div><span>France entière</span> depuis notre base à Venelles</div>
       </div>
 
-      <nav class="nav-chips">
-        <button class="nav-chip" onclick="scrollToSection('about')">Qui sommes-nous</button>
-        <button class="nav-chip" onclick="scrollToSection('method')">Notre méthode</button>
-        <button class="nav-chip" onclick="scrollToSection('quality')">Qualité</button>
-        <button class="nav-chip" onclick="scrollToSection('org')">Organisation</button>
-        <button class="nav-chip" onclick="scrollToSection('gallery')">Réalisations</button>
-        <button class="nav-chip" onclick="scrollToSection('faq')">FAQ</button>
-      </nav>
 
       <section class="section" id="why">
         <div class="eyebrow">POURQUOI BARPHIL CONCEPT</div>
