@@ -1,0 +1,12 @@
+{
+  "name": "barphil-configurateur",
+  "version": "1.0.0",
+  "description": "Configurateur de devis Barphil Concept (maisons ossature metallique)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
