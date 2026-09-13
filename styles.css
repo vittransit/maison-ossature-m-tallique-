@@ -28,7 +28,8 @@ h1,h2,h3{ font-family:"Fraunces",serif; margin:0; text-wrap:balance; }
 button:focus-visible, .opt-card:focus-visible, a:focus-visible, input:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
 @media (prefers-reduced-motion: reduce){
   html{ scroll-behavior:auto; }
-  .scan-fill, .rail-dot, .sim-screen.sim-anim, .sim-scan-fill{ transition:none; animation:none; }
+  .scan-fill, .rail-dot, .sim-screen.sim-slide, .sim-scan-fill, .sim-cursor, .sim-upload-fill, .sim-mini-row.sim-row-in, .sim-pill{ transition:none; animation:none; }
+  .sim-mini-row{ opacity:1; }
 }
 
 .shell{
@@ -77,17 +78,32 @@ p.lede{ color:var(--ink-soft); font-size:15px; margin:0 0 26px; max-width:40ch; 
 .sim-screen{
   background:var(--paper); border-radius:10px; padding:16px 18px; min-height:104px;
   display:flex; flex-direction:column; justify-content:center;
+  position:relative; overflow:hidden;
 }
-.sim-screen.sim-anim{ animation:simFade .35s ease; }
-@keyframes simFade{ from{ opacity:0; transform:translateY(5px);} to{ opacity:1; transform:translateY(0);} }
+.sim-screen.sim-slide{ animation:simSlide .4s cubic-bezier(.2,.8,.3,1); }
+@keyframes simSlide{ from{ opacity:0; transform:translateX(18px);} to{ opacity:1; transform:translateX(0);} }
 .sim-eyebrow{ font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--teal); letter-spacing:0.06em; margin-bottom:4px; }
 .sim-label{ font-family:"Fraunces",serif; font-weight:600; font-size:15px; color:var(--ink); margin-bottom:10px; }
 .sim-pills{ display:flex; gap:6px; flex-wrap:wrap; }
-.sim-pill{ font-size:11px; padding:6px 10px; border-radius:20px; border:1px solid var(--line); color:var(--ink-soft); }
+.sim-pill{ font-size:11px; padding:6px 10px; border-radius:20px; border:1px solid var(--line); color:var(--ink-soft); transition:background .2s ease, color .2s ease, border-color .2s ease; }
 .sim-pill.active{ background:var(--brand); border-color:var(--brand); color:var(--white); font-weight:600; display:flex; align-items:center; gap:5px; }
-.sim-file-row{ display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); padding:5px 0; }
-.sim-mini-row{ display:flex; justify-content:space-between; font-size:12.5px; padding:5px 0; color:var(--ink-soft); }
+.sim-pill .sim-check{ transition:opacity .2s ease; }
+.sim-cursor{
+  position:absolute; width:16px; height:16px; border-radius:50% 50% 50% 0; border:2px solid var(--brand);
+  background:rgba(255,255,255,0.95); left:10px; top:10px; opacity:0; transform:rotate(-45deg) scale(1);
+  transition:left .8s cubic-bezier(.4,0,.2,1), top .8s cubic-bezier(.4,0,.2,1), opacity .25s ease, transform .15s ease;
+  pointer-events:none; z-index:5;
+}
+.sim-cursor.show{ opacity:1; }
+.sim-cursor.tap{ transform:rotate(-45deg) scale(0.72); }
+.sim-file-row{ display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft); padding:5px 0; }
+.sim-upload{ position:relative; width:44px; height:5px; border-radius:3px; background:var(--line); overflow:hidden; display:inline-block; }
+.sim-upload-fill{ position:absolute; left:0; top:0; height:100%; width:0%; background:var(--teal); border-radius:3px; transition:width .6s ease; }
+.sim-upload-fill.fill{ width:100%; }
+.sim-mini-row{ display:flex; justify-content:space-between; font-size:12.5px; padding:5px 0; color:var(--ink-soft); opacity:0; }
 .sim-mini-row b{ color:var(--ink); }
+.sim-mini-row.sim-row-in{ animation:simRowIn .4s ease forwards; }
+@keyframes simRowIn{ from{ opacity:0; transform:translateX(10px);} to{ opacity:1; transform:translateX(0);} }
 .sim-scan-row{ font-size:12px; color:var(--ink-soft); margin-bottom:10px; }
 .sim-scan-bar{ width:100%; height:4px; border-radius:2px; background:var(--line); overflow:hidden; margin-bottom:10px; }
 .sim-scan-fill{ width:40%; height:100%; background:var(--teal); border-radius:2px; animation:simScan 1.6s ease-in-out infinite; }

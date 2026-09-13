@@ -303,31 +303,93 @@ const WALL_DIAGRAM_SVG = `
   </g>
 </svg>`;
 
-const SIM_SCREENS = [
-  `<div class="sim-eyebrow">ÉTAPE 01</div>
-   <div class="sim-label">Qui êtes-vous ?</div>
-   <div class="sim-pills">
-     <div class="sim-pill">Autoconstructeur</div>
-     <div class="sim-pill">Artisan</div>
-     <div class="sim-pill active">Client<span class="sim-check">✓</span></div>
-   </div>`,
-  `<div class="sim-eyebrow">ÉTAPE 04</div>
-   <div class="sim-label">Vos plans</div>
-   <div class="sim-file-row"><span>📄 plan-rdc.pdf</span><span class="sim-check">✓</span></div>
-   <div class="sim-file-row"><span>📄 plan-etage.pdf</span><span class="sim-check">✓</span></div>`,
-  `<div class="sim-eyebrow">ANALYSE AUTOMATIQUE</div>
-   <div class="sim-label">Lecture du PDF en cours…</div>
-   <div class="sim-scan-row"><span>📄 plan-rdc.pdf</span></div>
-   <div class="sim-scan-bar"><div class="sim-scan-fill"></div></div>
-   <div class="sim-scan-result">→ Surface détectée : <b>120 m²</b></div>`,
-  `<div class="sim-eyebrow">ÉTAPE 05</div>
-   <div class="sim-label">Métré estimatif</div>
-   <div class="sim-mini-row"><span>Surface habitable</span><b>120 m²</b></div>
-   <div class="sim-mini-row"><span>Emprise au sol</span><b>134 m²</b></div>`,
-  `<div class="sim-eyebrow">ÉTAPE 06</div>
-   <div class="sim-label">Estimation tarifaire</div>
-   <div class="sim-price">168 900 €</div>
-   <div class="sim-price-tag">✓ Devis prêt</div>`,
+const SIM_STEPS = [
+  {
+    duration: 2600,
+    html: `<div class="sim-eyebrow">ÉTAPE 01</div>
+      <div class="sim-label">Qui êtes-vous ?</div>
+      <div class="sim-pills">
+        <div class="sim-pill">Autoconstructeur</div>
+        <div class="sim-pill">Artisan</div>
+        <div class="sim-pill" id="simPillClient">Client<span class="sim-check" style="opacity:0;">✓</span></div>
+      </div>
+      <div class="sim-cursor" id="simCursor"></div>`,
+    mount(el) {
+      const cursor = el.querySelector("#simCursor");
+      const pill = el.querySelector("#simPillClient");
+      requestAnimationFrame(() => {
+        const pr = pill.getBoundingClientRect(), br = el.getBoundingClientRect();
+        cursor.style.left = (pr.right - br.left - 16) + "px";
+        cursor.style.top = (pr.top - br.top + pr.height / 2 - 8) + "px";
+        requestAnimationFrame(() => cursor.classList.add("show"));
+      });
+      setTimeout(() => {
+        pill.classList.add("active");
+        pill.querySelector(".sim-check").style.opacity = "1";
+        cursor.classList.add("tap");
+      }, 950);
+    },
+  },
+  {
+    duration: 2600,
+    html: `<div class="sim-eyebrow">ÉTAPE 04</div>
+      <div class="sim-label">Vos plans</div>
+      <div class="sim-file-row"><span>📄 plan-rdc.pdf</span><span class="sim-upload" data-f="0"><span class="sim-upload-fill"></span></span></div>
+      <div class="sim-file-row"><span>📄 plan-etage.pdf</span><span class="sim-upload" data-f="1"><span class="sim-upload-fill"></span></span></div>`,
+    mount(el) {
+      const rows = el.querySelectorAll(".sim-upload");
+      rows.forEach((row, idx) => {
+        setTimeout(() => {
+          row.querySelector(".sim-upload-fill").classList.add("fill");
+          setTimeout(() => { row.innerHTML = '<span class="sim-check" style="opacity:1;">✓</span>'; }, 650);
+        }, idx * 700);
+      });
+    },
+  },
+  {
+    duration: 2600,
+    html: `<div class="sim-eyebrow">ANALYSE AUTOMATIQUE</div>
+      <div class="sim-label">Lecture du PDF en cours…</div>
+      <div class="sim-scan-row"><span>📄 plan-rdc.pdf</span></div>
+      <div class="sim-scan-bar"><div class="sim-scan-fill"></div></div>
+      <div class="sim-scan-result" id="simScanResult" style="opacity:0;">→ Surface détectée : <b>120 m²</b></div>`,
+    mount(el) {
+      setTimeout(() => { el.querySelector("#simScanResult").style.transition = "opacity .4s ease"; el.querySelector("#simScanResult").style.opacity = "1"; }, 1300);
+    },
+  },
+  {
+    duration: 2600,
+    html: `<div class="sim-eyebrow">ÉTAPE 05</div>
+      <div class="sim-label">Métré estimatif</div>
+      <div class="sim-mini-row sim-row-in" style="animation-delay:.1s"><span>Surface habitable</span><b>120 m²</b></div>
+      <div class="sim-mini-row sim-row-in" style="animation-delay:.45s"><span>Emprise au sol</span><b>134 m²</b></div>`,
+    mount() {},
+  },
+  {
+    duration: 2600,
+    html: `<div class="sim-eyebrow">ÉTAPE 06</div>
+      <div class="sim-label">Estimation tarifaire</div>
+      <div class="sim-price" id="simPrice">0 €</div>
+      <div class="sim-price-tag" id="simPriceTag" style="opacity:0;">✓ Devis prêt</div>`,
+    mount(el) {
+      const priceEl = el.querySelector("#simPrice");
+      const target = 168900;
+      const start = performance.now();
+      const dur = 1000;
+      const step = (now) => {
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        priceEl.textContent = Math.round(target * eased).toLocaleString("fr-FR") + " €";
+        if (t < 1) requestAnimationFrame(step);
+        else {
+          const tag = el.querySelector("#simPriceTag");
+          tag.style.transition = "opacity .3s ease";
+          tag.style.opacity = "1";
+        }
+      };
+      requestAnimationFrame(step);
+    },
+  },
 ];
 
 let simInterval = null;
@@ -339,18 +401,23 @@ function startHeroSimulation() {
   let i = 0;
   let first = true;
   const paint = () => {
-    screenEl.innerHTML = SIM_SCREENS[i];
-    if (first) { first = false; }
-    else {
-      screenEl.classList.remove("sim-anim");
+    const step = SIM_STEPS[i];
+    if (first) {
+      screenEl.innerHTML = step.html;
+      first = false;
+    } else {
+      screenEl.classList.remove("sim-slide");
       void screenEl.offsetWidth;
-      screenEl.classList.add("sim-anim");
+      screenEl.innerHTML = step.html;
+      screenEl.classList.add("sim-slide");
     }
+    step.mount(screenEl);
     dots.forEach((d, di) => d.classList.toggle("active", di === i));
-    i = (i + 1) % SIM_SCREENS.length;
+    const thisDuration = step.duration;
+    i = (i + 1) % SIM_STEPS.length;
+    simInterval = setTimeout(paint, thisDuration);
   };
   paint();
-  simInterval = setInterval(paint, 1900);
 }
 
 function renderHeaderExtra(s) {
