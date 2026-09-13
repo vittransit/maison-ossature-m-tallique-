@@ -303,6 +303,56 @@ const WALL_DIAGRAM_SVG = `
   </g>
 </svg>`;
 
+const SIM_SCREENS = [
+  `<div class="sim-eyebrow">ÉTAPE 01</div>
+   <div class="sim-label">Qui êtes-vous ?</div>
+   <div class="sim-pills">
+     <div class="sim-pill">Autoconstructeur</div>
+     <div class="sim-pill">Artisan</div>
+     <div class="sim-pill active">Client<span class="sim-check">✓</span></div>
+   </div>`,
+  `<div class="sim-eyebrow">ÉTAPE 04</div>
+   <div class="sim-label">Vos plans</div>
+   <div class="sim-file-row"><span>📄 plan-rdc.pdf</span><span class="sim-check">✓</span></div>
+   <div class="sim-file-row"><span>📄 plan-etage.pdf</span><span class="sim-check">✓</span></div>`,
+  `<div class="sim-eyebrow">ANALYSE AUTOMATIQUE</div>
+   <div class="sim-label">Lecture du PDF en cours…</div>
+   <div class="sim-scan-row"><span>📄 plan-rdc.pdf</span></div>
+   <div class="sim-scan-bar"><div class="sim-scan-fill"></div></div>
+   <div class="sim-scan-result">→ Surface détectée : <b>120 m²</b></div>`,
+  `<div class="sim-eyebrow">ÉTAPE 05</div>
+   <div class="sim-label">Métré estimatif</div>
+   <div class="sim-mini-row"><span>Surface habitable</span><b>120 m²</b></div>
+   <div class="sim-mini-row"><span>Emprise au sol</span><b>134 m²</b></div>`,
+  `<div class="sim-eyebrow">ÉTAPE 06</div>
+   <div class="sim-label">Estimation tarifaire</div>
+   <div class="sim-price">168 900 €</div>
+   <div class="sim-price-tag">✓ Devis prêt</div>`,
+];
+
+let simInterval = null;
+function startHeroSimulation() {
+  if (simInterval) clearInterval(simInterval);
+  const screenEl = document.getElementById("simScreen");
+  const dots = document.querySelectorAll("#simProgress .sim-progress-dot");
+  if (!screenEl) return;
+  let i = 0;
+  let first = true;
+  const paint = () => {
+    screenEl.innerHTML = SIM_SCREENS[i];
+    if (first) { first = false; }
+    else {
+      screenEl.classList.remove("sim-anim");
+      void screenEl.offsetWidth;
+      screenEl.classList.add("sim-anim");
+    }
+    dots.forEach((d, di) => d.classList.toggle("active", di === i));
+    i = (i + 1) % SIM_SCREENS.length;
+  };
+  paint();
+  simInterval = setInterval(paint, 1900);
+}
+
 function renderHeaderExtra(s) {
   const el = document.getElementById("headerExtra");
   if (s !== "landing") { el.innerHTML = ""; return; }
@@ -323,16 +373,30 @@ function render() {
   const footer = document.getElementById("footer");
   const s = STEPS[state.step];
   renderHeaderExtra(s);
+  if (s !== "landing" && simInterval) { clearInterval(simInterval); simInterval = null; }
 
   if (s === "landing") {
     app.innerHTML = `
+      <div class="eyebrow">MAISONS OSSATURE MÉTALLIQUE</div>
+      <h1 class="hero">Chiffrez votre projet en 5 minutes</h1>
+      <p class="lede">Autoconstruction, chantier professionnel ou maison clé en main — obtenez un métré et une estimation à partir de vos plans.</p>
+
+      <div class="sim-card">
+        <div class="sim-header">
+          <span class="sim-dot"></span><span class="sim-dot"></span><span class="sim-dot"></span>
+          <span class="sim-title">Aperçu du parcours</span>
+        </div>
+        <div class="sim-screen" id="simScreen"></div>
+        <div class="sim-progress" id="simProgress">
+          <div class="sim-progress-dot"></div><div class="sim-progress-dot"></div><div class="sim-progress-dot"></div><div class="sim-progress-dot"></div><div class="sim-progress-dot"></div>
+        </div>
+        <div class="sim-caption">Moins de 5 minutes, sans rendez-vous — pas de compte à créer pour voir votre estimation.</div>
+      </div>
+
       <div class="hero-photo-wrap">
         <img class="hero-photo" src="/images/hero.jpg" alt="Maison ossature métallique Barphil">
         <div class="hero-photo-tag">Réalisation Barphil</div>
       </div>
-      <div class="eyebrow">MAISONS OSSATURE MÉTALLIQUE</div>
-      <h1 class="hero">Chiffrez votre projet en 5 minutes</h1>
-      <p class="lede">Autoconstruction, chantier professionnel ou maison clé en main — obtenez un métré et une estimation à partir de vos plans.</p>
       <div class="stat-row">
         <div class="stat"><div class="stat-value">1 400 €</div><div class="stat-label">/M² CLÉ EN MAIN</div></div>
         <div class="stat"><div class="stat-value">−33%</div><div class="stat-label">BESOIN ÉNERGÉTIQUE RE2020</div></div>
@@ -447,6 +511,7 @@ function render() {
       </footer>
     `;
     footer.innerHTML = `<div class="actions-row"><button class="btn-primary" onclick="goTo('profil')">Démarrer mon projet</button></div>`;
+    startHeroSimulation();
   }
 
   else if (s === "profil") {
