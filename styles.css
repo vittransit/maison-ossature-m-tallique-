@@ -286,6 +286,8 @@ form.contact-form{ display:flex; flex-direction:column; gap:16px; }
 
 /* ===== Sticky footer actions ===== */
 footer.actions{ position:sticky; bottom:0; background:var(--paper); border-top:1px solid var(--line); padding:16px 24px; max-width:560px; margin:0 auto; width:100%; }
+footer.actions.hidden{ display:none; }
+.hero-cta{ display:block; width:100%; margin:0 0 26px; }
 .actions-row{ display:flex; gap:12px; align-items:center; }
 .btn-back{ background:none; border:none; color:var(--ink-soft); font-size:13.5px; padding:12px 6px; cursor:pointer; font-family:"IBM Plex Mono",monospace; }
 .btn-primary{ flex:1; background:var(--brand); color:var(--white); border:none; border-radius:10px; padding:15px 20px; font-size:15px; font-weight:700; cursor:pointer; letter-spacing:0.01em; font-family:"Work Sans",sans-serif; }

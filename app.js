@@ -446,6 +446,7 @@ function render() {
   const footer = document.getElementById("footer");
   const s = STEPS[state.step];
   renderHeaderExtra(s);
+  footer.classList.remove("hidden");
   if (s !== "landing" && simInterval) { clearInterval(simInterval); simInterval = null; }
 
   if (s === "landing") {
@@ -465,6 +466,8 @@ function render() {
         </div>
         <div class="sim-caption">Moins de 5 minutes, sans rendez-vous — pas de compte à créer pour voir votre estimation.</div>
       </div>
+
+      <button class="btn-primary hero-cta" onclick="goTo('profil')">Démarrer mon projet</button>
 
       <div class="hero-photo-wrap">
         <img class="hero-photo" src="/images/hero.jpg" alt="Maison ossature métallique Barphil">
@@ -583,8 +586,10 @@ function render() {
         <div>SAS · SIREN 914 926 100 · TVA FR61914926100</div>
       </footer>
     `;
-    footer.innerHTML = `<div class="actions-row"><button class="btn-primary" onclick="goTo('profil')">Démarrer mon projet</button></div>`;
+    footer.innerHTML = ``;
+    footer.classList.add("hidden");
     startHeroSimulation();
+
   }
 
   else if (s === "profil") {
@@ -680,6 +685,7 @@ function render() {
         <div class="scan-status">Envoi au serveur et lecture des fichiers PDF…</div>
       </div>`;
     footer.innerHTML = ``;
+    footer.classList.add("hidden");
   }
 
   else if (s === "metre") {
@@ -774,6 +780,7 @@ function render() {
         </ul>
       </div>`;
     footer.innerHTML = ``;
+    footer.classList.add("hidden");
   }
 
   else if (s === "partenaire") {
@@ -823,6 +830,7 @@ function render() {
         </ul>
       </div>`;
     footer.innerHTML = ``;
+    footer.classList.add("hidden");
   }
 }
 
