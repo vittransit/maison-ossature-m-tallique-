@@ -108,6 +108,7 @@ function renderLeads(leads) {
       <td>${escapeHtml(l.travaux)}</td>
       <td>${l.surface} m²</td>
       <td>${l.total_estime.toLocaleString('fr-FR')} €</td>
+      <td>${l.fichiers && l.fichiers.length ? escapeHtml(l.fichiers.join(', ')) : '<em>aucun (plans a recuperer)</em>'}</td>
     </tr>
   `).join('');
   content.innerHTML = `
@@ -116,7 +117,7 @@ function renderLeads(leads) {
       <table>
         <thead><tr>
           <th>ID</th><th>Date</th><th>Nom</th><th>Email</th><th>Tél.</th><th>Région</th>
-          <th>Profil</th><th>Travaux</th><th>Surface</th><th>Estimation</th>
+          <th>Profil</th><th>Travaux</th><th>Surface</th><th>Estimation</th><th>Fichiers</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>

@@ -119,11 +119,13 @@ function selectTravaux(t) { state.travaux = t; render(); }
 
 function handleFiles(input) {
   state.fileObjs = Array.from(input.files || []);
+  state.error = null;
   render();
 }
 
 function toggleNoPlans(checked) {
   state.noPlansYet = checked;
+  state.error = null;
   if (checked) {
     state.fileObjs = [];
     if (!state.surface) state.surface = 120;
@@ -133,11 +135,13 @@ function toggleNoPlans(checked) {
 
 async function continueWithoutPlans() {
   state.filesInfo = [];
+  state.error = null;
   await refreshMetre();
   goTo("metre");
 }
 
 async function analyser() {
+  state.error = null;
   goTo("analyzing");
   const form = new FormData();
   state.fileObjs.forEach((f) => form.append("files", f));
@@ -223,10 +227,11 @@ async function submitForm(e) {
       }),
     });
     data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erreur lors de l'envoi.");
   } catch (err) {
     submitting = false;
     if (btn) { btn.disabled = false; btn.textContent = "Envoyer ma demande"; }
-    state.error = "Erreur de connexion, merci de reessayer.";
+    state.error = err.message || "Erreur de connexion, merci de reessayer.";
     render();
     return;
   }
@@ -263,10 +268,11 @@ async function submitPartnerForm(e) {
       }),
     });
     data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erreur lors de l'envoi.");
   } catch (err) {
     partnerSubmitting = false;
     if (btn) { btn.disabled = false; btn.textContent = "Envoyer ma candidature"; }
-    state.error = "Erreur de connexion, merci de reessayer.";
+    state.error = err.message || "Erreur de connexion, merci de reessayer.";
     render();
     return;
   }
@@ -730,10 +736,10 @@ function render() {
         <div class="recap-line"><span>Estimation</span><b>${state.devis.total.toLocaleString("fr-FR")} €</b></div>
       </div>
       <form class="contact-form" onsubmit="submitForm(event)" id="contactForm">
-        <div class="field"><label>Nom</label><input id="f-nom" required></div>
-        <div class="field"><label>Email</label><input id="f-email" type="email" required></div>
-        <div class="field"><label>Téléphone</label><input id="f-tel" type="tel"></div>
-        <div class="field"><label>Ville ou code postal du projet</label><input id="f-region" required><div class="field-hint">Pour vous orienter vers l'artisan partenaire de votre secteur</div></div>
+        <div class="field"><label>Nom</label><input id="f-nom" value="${escapeHtml(state.contactNom)}" required></div>
+        <div class="field"><label>Email</label><input id="f-email" type="email" value="${escapeHtml(state.contactEmail)}" required></div>
+        <div class="field"><label>Téléphone</label><input id="f-tel" type="tel" value="${escapeHtml(state.contactTel)}"></div>
+        <div class="field"><label>Ville ou code postal du projet</label><input id="f-region" value="${escapeHtml(state.contactRegion)}" required><div class="field-hint">Pour vous orienter vers l'artisan partenaire de votre secteur</div></div>
         <label class="consent-row">
           <input type="checkbox" id="f-consent" required>
           <span>J'accepte que Barphil Concept utilise ces informations pour me recontacter au sujet de mon projet. Voir notre politique de confidentialité.</span>
@@ -742,7 +748,7 @@ function render() {
           <label>Site web</label><input id="f-website" name="website" tabindex="-1" autocomplete="off">
         </div>
       </form>
-      <div class="note-box info">ℹ Vous préférez appeler ? <a href="tel:0622034232" style="color:var(--brand);font-weight:700;">06 22 03 42 32</a> · <a href="mailto:contact@barphil.fr" style="color:var(--brand);font-weight:700;">contact@barphil.fr</a></div>`;
+      ${state.error ? `<div class="note-box error">⚠ ${escapeHtml(state.error)}</div>` : `<div class="note-box info">ℹ Vous préférez appeler ? <a href="tel:0622034232" style="color:var(--brand);font-weight:700;">06 22 03 42 32</a> · <a href="mailto:contact@barphil.fr" style="color:var(--brand);font-weight:700;">contact@barphil.fr</a></div>`}`;
     footer.innerHTML = `<div class="actions-row">
       <button class="btn-back" onclick="back()">← Retour</button>
       <button class="btn-primary" id="submitBtn" onclick="document.getElementById('contactForm').requestSubmit()">Envoyer ma demande</button>
@@ -776,13 +782,13 @@ function render() {
       <h1>Rejoindre le réseau régional</h1>
       <p class="lede">Renseignez votre entreprise et votre zone d'intervention — nous vous recontactons pour la formation et la convention partenaire, et vous mettons en relation avec les clients de votre secteur.</p>
       <form class="contact-form" onsubmit="submitPartnerForm(event)" id="partnerForm">
-        <div class="field"><label>Entreprise</label><input id="p-entreprise" required></div>
-        <div class="field"><label>SIRET</label><input id="p-siret"></div>
-        <div class="field"><label>Zone d'intervention (départements / région)</label><input id="p-region" required><div class="field-hint">Ex. Bouches-du-Rhône, Var, Vaucluse…</div></div>
-        <div class="field"><label>Nom du contact</label><input id="p-nom" required></div>
-        <div class="field"><label>Email</label><input id="p-email" type="email" required></div>
-        <div class="field"><label>Téléphone</label><input id="p-tel" type="tel"></div>
-        <div class="field"><label>Message (optionnel)</label><textarea id="p-message" rows="3"></textarea></div>
+        <div class="field"><label>Entreprise</label><input id="p-entreprise" value="${escapeHtml(state.partnerEntreprise)}" required></div>
+        <div class="field"><label>SIRET</label><input id="p-siret" value="${escapeHtml(state.partnerSiret)}"></div>
+        <div class="field"><label>Zone d'intervention (départements / région)</label><input id="p-region" value="${escapeHtml(state.partnerRegion)}" required><div class="field-hint">Ex. Bouches-du-Rhône, Var, Vaucluse…</div></div>
+        <div class="field"><label>Nom du contact</label><input id="p-nom" value="${escapeHtml(state.partnerNom)}" required></div>
+        <div class="field"><label>Email</label><input id="p-email" type="email" value="${escapeHtml(state.partnerEmail)}" required></div>
+        <div class="field"><label>Téléphone</label><input id="p-tel" type="tel" value="${escapeHtml(state.partnerTel)}"></div>
+        <div class="field"><label>Message (optionnel)</label><textarea id="p-message" rows="3">${escapeHtml(state.partnerMessage)}</textarea></div>
         <label class="consent-row">
           <input type="checkbox" id="p-consent" required>
           <span>J'accepte que Barphil Concept utilise ces informations pour étudier ma candidature de partenaire. Voir notre politique de confidentialité.</span>

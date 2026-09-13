@@ -67,8 +67,9 @@ p.lede{ color:var(--ink-soft); font-size:15px; margin:0 0 26px; max-width:40ch; 
 
 /* ===== Hero simulation (auto-playing funnel preview) ===== */
 .sim-card{
-  background:var(--brand-strong); border-radius:14px; padding:16px 18px 18px; margin-bottom:22px;
+  background:var(--brand-strong); border-radius:14px; padding:16px 18px 18px; margin:0 auto 22px;
   box-shadow:0 10px 30px rgba(18,61,50,0.18);
+  max-width:340px; width:100%;
 }
 .sim-header{ display:flex; align-items:center; gap:6px; margin-bottom:12px; }
 .sim-dot{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.25); }
